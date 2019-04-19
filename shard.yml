@@ -3,6 +3,7 @@ version: 0.1.0
 
 authors:
   - vinhig <vincent.higginson@student.unamur.Be>
+  - martin-danhier <martin.danhier@student.unamur.be>
 
 targets:
   endiver:
