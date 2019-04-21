@@ -1,5 +1,5 @@
-a = 1
-b = 0
-while True:
-    b = a + b
-    print(b)
+a = 0
+b = 1000000
+c = 1
+while a < b:
+    a += c

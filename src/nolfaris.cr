@@ -5,34 +5,91 @@ module Nolfaris
   save_file("out.nk")
 
   DATA = [
-    ["li", 0x5_u16, 1],
-    ["li", 0x6_u16, 0],
-    ["add", 0x6_u16, 0x5_u16, 0x6_u16],
-    ["log", 0x6_u16],
-    ["j", 14]
+    ["li", 0x5_u16, 0], #0
+    ["li", 0x6_u16, 4000], #7
+    # loop
+    ["jal", 37], #14
+    ["log", 0x5_u16], #19
+    ["copy", 0x5_u16, 0x6_u16],
+    ["blt", 0x5_u16, 0x6_u16, 14], #22
+    ["stop"], #31
+    # fun add 2
+    ["addi", 0x5_u16, 0x5_u16, 2], #32
+    ["jr", 0x2_u16],
   ]
+
 
   def dump_data(data)
     array = [] of UInt8
     data.each do |instruction|
       case instruction[0]
       when "add"
-        array += [0x00_u8] + to_byte_array(instruction[1].as(UInt16)) + to_byte_array(instruction[2].as(UInt16)) + to_byte_array(instruction[3].as(UInt16))
+        array += [0x00_u8] + dump_three_regs(instruction)
+      when "addi"
+        array += [0x01_u8] + dump_two_regs_and_int32(instruction)
+      when "beq"
+        array += [0x02_u8] + dump_two_regs_and_int32(instruction)
+      when "bge"
+        array += [0x03_u8] + dump_two_regs_and_int32(instruction)
+      when "bgt"
+        array += [0x04_u8] + dump_two_regs_and_int32(instruction)
+      when "ble"
+        array += [0x05_u8] + dump_two_regs_and_int32(instruction)
+      when "blt"
+        array += [0x06_u8] + dump_two_regs_and_int32(instruction)
+      when "bne"
+        array += [0x07_u8] + dump_two_regs_and_int32(instruction)
+      when "beqz"
+        array += [0x08_u8] + dump_one_reg_and_int32(instruction)
+      when "bgez"
+        array += [0x09_u8] + dump_one_reg_and_int32(instruction)
+      when "bgtz"
+        array += [0x0a_u8] + dump_one_reg_and_int32(instruction)
+      when "blez"
+        array += [0x0b_u8] + dump_one_reg_and_int32(instruction)
+      when "bltz"
+        array += [0x0c_u8] + dump_one_reg_and_int32(instruction)
+      when "bnez"
+        array += [0x0d_u8] + dump_one_reg_and_int32(instruction)
+      when "copy"
+        array += [0x14_u8] + to_byte_array(instruction[1].as(UInt16)) + to_byte_array(instruction[2].as(UInt16))
+      when "div"
+        array += [0x0f_u8] + dump_three_regs(instruction)
+      when "divi"
+        array += [0x10_u8] + dump_two_regs_and_int32(instruction)
       when "j"
         array += [0x12_u8] + to_byte_array(instruction[1].as(Int32))
+      when "jr"
+        array += [0x13_u8] + to_byte_array(instruction[1].as(UInt16))
+      when "jal"
+        array += [0x30_u8] + to_byte_array(instruction[1].as(Int32))
       when "li"
-        array += [0x17_u8] + to_byte_array(instruction[1].as(UInt16)) + to_byte_array(instruction[2].as(Int32))
+        array += [0x17_u8] + dump_one_reg_and_int32(instruction)
       when "log"
         array += [0x19_u8] + to_byte_array(instruction[1].as(UInt16))
       when "lstr"
         array += [0x1b_u8] + to_byte_array(instruction[1].as(UInt16)) + dump_string(instruction[2].as(String))
       when "stop"
         array << 0x2d_u8
+
+
+
       end
     end
     return array
   end
 
+  def dump_two_regs_and_int32(instruction)
+    return to_byte_array(instruction[1].as(UInt16)) + to_byte_array(instruction[2].as(UInt16)) + to_byte_array(instruction[3].as(Int32))
+  end
+
+  def dump_one_reg_and_int32(instruction)
+    return to_byte_array(instruction[1].as(UInt16)) + to_byte_array(instruction[2].as(Int32))
+  end
+
+  def dump_three_regs(instruction)
+    return to_byte_array(instruction[1].as(UInt16)) + to_byte_array(instruction[2].as(UInt16)) + to_byte_array(instruction[3].as(UInt16))
+  end
 
   def save_file(path : String)
     array = dump_data(DATA)

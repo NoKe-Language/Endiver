@@ -7,6 +7,9 @@ module Endiver
 
   REG = Array(Primary).new(10, 0)
 
+
+
+
   extend self
 
   def read_file(path : String)
@@ -23,12 +26,44 @@ module Endiver
             inst = bytes[index]
             case inst
             when 0x00_u8 # add
-              reg1 = load_uint16(bytes, index + 1)
-              reg2 = load_uint16(bytes, index + 3)
-              reg3 = load_uint16(bytes, index + 5)
+              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)].as(Int32) + REG[load_uint16(bytes, index + 5)].as(Int32)
               index += 7
-              REG[reg1] = REG[reg2].as(Int32) + REG[reg3].as(Int32)
+            when 0x01_u8 # addi
+              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)].as(Int32) + load_int32(bytes, index + 5)
+              index += 9
+            when 0x02_u8..0x07_u8 # beq, bge, bgt, ble, blt, bne
+              i = bytes[index]
+              a = REG[load_uint16(bytes, index + 1)].as(Int32)
+              b = REG[load_uint16(bytes, index + 3)].as(Int32)
+              if (i == 2 && a == b) || (i == 3 && a >= b) || (i == 4 && a > b) || (i == 5 && a <= b) || (i == 6 && a < b) || (i == 7 && a != b)
+                index = load_int32(bytes, index + 5)
+              else
+                index += 9
+              end
+            when 0x08_u8..0x0d_u8 #beqz, bgez, bgtz, blez, bltz, bnez
+              
+              i = bytes[index]
+              a = REG[load_uint16(bytes, index + 1)].as(Int32)
+              if (i == 8 && a == 0) || (i == 9 && a >= 0) || (i == 10 && a > 0) || (i == 11 && a <= 0) || (i == 12 && a < 0) || (i == 13 && a != 0)
+                index = load_int32(bytes, index + 3)
+              else
+                index += 7
+              end
+            when 0x0f_u8 #div
+              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)].as(Int32) / REG[load_uint16(bytes, index + 5)].as(Int32)
+              index += 7
+            when 0x10_u8 #divi
+              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)].as(Int32) / load_int32(bytes, index + 5)
+              index += 9
             when 0x12_u8 # j
+              index = load_int32(bytes, index + 1)
+            when 0x13_u8 # jr
+              index = REG[load_uint16(bytes, index + 1)].as(Int32)
+            when 0x14_u8 # copy
+              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)]
+              index += 5
+            when 0x30_u8 # jal
+              REG[2] = index + 5
               index = load_int32(bytes, index + 1)
             when 0x17_u8 # li
               reg = load_uint16(bytes, index + 1)
@@ -44,7 +79,7 @@ module Endiver
             when 0x2d_u8 # stop
               stop = true
             else
-              puts "Unknown instruction : %x" % bytes[index]
+              puts "Unknown instruction : 0x%X" % bytes[index]
               stop = true
             end
           end
@@ -72,5 +107,5 @@ module Endiver
     return bytes[from].to_u16 + bytes[from + 1].to_u16 * 0x100
   end
 
-  alias Primary = (Int32 | Float32 | UInt8 | String | Bool | Array(Primary))
+  alias Primary = (Int32 | Float32 | UInt8 | String | Array(Primary))
 end
