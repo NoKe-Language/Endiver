@@ -31,10 +31,20 @@ module Endiver
               value2 = REG[LOADER_U16.load(bytes, index + 5)]
               if value1.class == value2.class == Int32
                 REG[LOADER_U16.load(bytes, index + 1)] = value1.as(Int32) + value2.as(Int32)
+              elsif value1.class == value2.class == UInt8
+                REG[LOADER_U16.load(bytes, index + 1)] = value1.as(UInt8) + value2.as(UInt8)
+              elsif value1.class == Int32 && value2.class == UInt8
+                REG[LOADER_U16.load(bytes, index + 1)] = value1.as(Int32) + value2.as(UInt8)
+              elsif value1.class == UInt8 && value2.class == Int32
+                REG[LOADER_U16.load(bytes, index + 1)] = value1.as(UInt8) + value2.as(Int32)
               elsif value1.class == value2.class == String
                 REG[LOADER_U16.load(bytes, index + 1)] = value1.as(String) + value2.as(String)
               elsif value1.class == value2.class == Float32
                 REG[LOADER_U16.load(bytes, index + 1)] = value1.as(Float32) + value2.as(Float32)
+              elsif value1.class == Int32 && value2.class == Float32
+                REG[LOADER_U16.load(bytes, index + 1)] = value1.as(Int32) + value2.as(Float32)
+              elsif value1.class == Float32 && value2.class == Int32
+                REG[LOADER_U16.load(bytes, index + 1)] = value1.as(Float32) + value2.as(Int32)
               end
               index += 7
             when 0x01_u8 # addi
