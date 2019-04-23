@@ -7,7 +7,8 @@ module Endiver
 
   REG = Array(Primary).new(10, 0)
 
-
+  LOADER_U16 = Loader(UInt16).new
+  LOADER_I32 = Loader(Int32).new
 
 
   extend self
@@ -26,55 +27,63 @@ module Endiver
             inst = bytes[index]
             case inst
             when 0x00_u8 # add
-              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)].as(Int32) + REG[load_uint16(bytes, index + 5)].as(Int32)
+              value1 = REG[LOADER_U16.load(bytes, index + 3)]
+              value2 = REG[LOADER_U16.load(bytes, index + 5)]
+              if value1.class == value2.class == Int32
+                REG[LOADER_U16.load(bytes, index + 1)] = value1.as(Int32) + value2.as(Int32)
+              elsif value1.class == value2.class == String
+                REG[LOADER_U16.load(bytes, index + 1)] = value1.as(String) + value2.as(String)
+              elsif value1.class == value2.class == Float32
+                REG[LOADER_U16.load(bytes, index + 1)] = value1.as(Float32) + value2.as(Float32)
+              end
               index += 7
             when 0x01_u8 # addi
-              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)].as(Int32) + load_int32(bytes, index + 5)
+              REG[LOADER_U16.load(bytes, index + 1)] = REG[LOADER_U16.load(bytes, index + 3)].as(Int32) + LOADER_I32.load(bytes, index + 5)
               index += 9
             when 0x02_u8..0x07_u8 # beq, bge, bgt, ble, blt, bne
               i = bytes[index]
-              a = REG[load_uint16(bytes, index + 1)].as(Int32)
-              b = REG[load_uint16(bytes, index + 3)].as(Int32)
+              a = REG[LOADER_U16.load(bytes, index + 1)].as(Int32)
+              b = REG[LOADER_U16.load(bytes, index + 3)].as(Int32)
               if (i == 2 && a == b) || (i == 3 && a >= b) || (i == 4 && a > b) || (i == 5 && a <= b) || (i == 6 && a < b) || (i == 7 && a != b)
-                index = load_int32(bytes, index + 5)
+                index = LOADER_I32.load(bytes, index + 5)
               else
                 index += 9
               end
             when 0x08_u8..0x0d_u8 #beqz, bgez, bgtz, blez, bltz, bnez
               
               i = bytes[index]
-              a = REG[load_uint16(bytes, index + 1)].as(Int32)
+              a = REG[LOADER_U16.load(bytes, index + 1)].as(Int32)
               if (i == 8 && a == 0) || (i == 9 && a >= 0) || (i == 10 && a > 0) || (i == 11 && a <= 0) || (i == 12 && a < 0) || (i == 13 && a != 0)
-                index = load_int32(bytes, index + 3)
+                index = LOADER_I32.load(bytes, index + 3)
               else
                 index += 7
               end
             when 0x0f_u8 #div
-              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)].as(Int32) / REG[load_uint16(bytes, index + 5)].as(Int32)
+              REG[LOADER_U16.load(bytes, index + 1)] = REG[LOADER_U16.load(bytes, index + 3)].as(Int32) / REG[LOADER_U16.load(bytes, index + 5)].as(Int32)
               index += 7
             when 0x10_u8 #divi
-              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)].as(Int32) / load_int32(bytes, index + 5)
+              REG[LOADER_U16.load(bytes, index + 1)] = REG[LOADER_U16.load(bytes, index + 3)].as(Int32) / LOADER_I32.load(bytes, index + 5)
               index += 9
             when 0x12_u8 # j
-              index = load_int32(bytes, index + 1)
+              index = LOADER_I32.load(bytes, index + 1)
             when 0x13_u8 # jr
-              index = REG[load_uint16(bytes, index + 1)].as(Int32)
+              index = REG[LOADER_U16.load(bytes, index + 1)].as(Int32)
             when 0x14_u8 # copy
-              REG[load_uint16(bytes, index + 1)] = REG[load_uint16(bytes, index + 3)]
+              REG[LOADER_U16.load(bytes, index + 1)] = REG[LOADER_U16.load(bytes, index + 3)]
               index += 5
             when 0x30_u8 # jal
               REG[2] = index + 5
-              index = load_int32(bytes, index + 1)
+              index = LOADER_I32.load(bytes, index + 1)
             when 0x17_u8 # li
-              reg = load_uint16(bytes, index + 1)
-              REG[reg] = load_int32(bytes, index + 3)
+              reg = LOADER_U16.load(bytes, index + 1)
+              REG[reg] = LOADER_I32.load(bytes, index + 3)
               index += 7
             when 0x19_u8 # log
-              reg = load_uint16(bytes, index + 1)
+              reg = LOADER_U16.load(bytes, index + 1)
               puts REG[reg]
               index += 3
             when 0x1b_u8 # lstr
-              reg = load_uint16(bytes, index + 1)
+              reg = LOADER_U16.load(bytes, index + 1)
               REG[reg], index = load_string(bytes, index + 3)
             when 0x2d_u8 # stop
               stop = true
@@ -92,20 +101,19 @@ module Endiver
       puts "Invalid file : %s" % path
     end
   end
-
+  
   def load_string(bytes : Bytes, from : Int32)
     string_length = bytes[from].to_u16 + bytes[from + 1].to_u16 * 0x100
     string = String.new(bytes[from + 2, string_length])
     return string, from + 2 + string_length
   end
 
-  def load_int32(bytes : Bytes, from : Int32)
-    return (bytes[from].to_u32 + bytes[from + 1].to_u32 * 0x100 + bytes[from + 2].to_u32 * 0x10000 + bytes[from + 3].to_u32 * 0x1000000).to_i32
-  end
-
-  def load_uint16(bytes : Bytes, from : Int32)
-    return bytes[from].to_u16 + bytes[from + 1].to_u16 * 0x100
+  class Loader(T)
+    def load(bytes : Bytes, from : Int = 0) : T
+      (bytes.to_unsafe + from).as(T*).value
+    end
   end
 
   alias Primary = (Int32 | Float32 | UInt8 | String | Array(Primary))
 end
+

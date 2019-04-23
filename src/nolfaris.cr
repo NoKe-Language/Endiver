@@ -5,18 +5,12 @@ module Nolfaris
   save_file("out.nk")
 
   DATA = [
-    ["li", 0x5_u16, 0], #0
-    ["li", 0x6_u16, 4000], #7
-    # loop
-    ["jal", 37], #14
-    ["log", 0x5_u16], #19
-    ["copy", 0x5_u16, 0x6_u16],
-    ["blt", 0x5_u16, 0x6_u16, 14], #22
-    ["stop"], #31
-    # fun add 2
-    ["addi", 0x5_u16, 0x5_u16, 2], #32
-    ["jr", 0x2_u16],
-  ]
+    ["lstr", 0x05_u16, "foo"],
+    ["lstr", 0x06_u16, "bar"],
+    ["add", 0x05_u16, 0x05_u16, 0x06_u16],
+    ["log", 0x05_u16],
+    ["stop"]
+  ] of Array(UInt16 | String | Int32)
 
 
   def dump_data(data)
@@ -105,6 +99,7 @@ module Nolfaris
   def to_byte_array(value : UInt16 | Int16)
     [value.to_u8, (value / 0x100).to_u8]
   end
+
   def dump_string(string : String)
     return to_byte_array(string.bytesize.to_i16) + string.bytes
   end

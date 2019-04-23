@@ -1,6 +1,3 @@
-a = 0
-b = 1000000
-c = 1
-while a < b
-    a += 1
-end
+a = 3
+x = pointerof(a)
+puts x.value
