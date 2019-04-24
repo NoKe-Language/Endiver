@@ -5,12 +5,11 @@ module Nolfaris
   save_file("out.nk")
 
   DATA = [
-    ["lstr", 0x05_u16, "foo"],
-    ["lstr", 0x06_u16, "bar"],
-    ["add", 0x05_u16, 0x05_u16, 0x06_u16],
-    ["log", 0x05_u16],
+    ["li", 0x05_u16, 5],
+    ["lf", 0x06_u16, 4.4_f32],
+    ["sst", 0x05_u16, 0, 0x00_u16],
     ["stop"]
-  ] of Array(UInt16 | String | Int32)
+  ] of Array(UInt16 | String | Int32 | Float32)
 
 
   def dump_data(data)
@@ -57,12 +56,16 @@ module Nolfaris
         array += [0x13_u8] + to_byte_array(instruction[1].as(UInt16))
       when "jal"
         array += [0x30_u8] + to_byte_array(instruction[1].as(Int32))
+      when "lf"
+        array += [0x16_u8] + dump_one_reg_and_float32(instruction)
       when "li"
         array += [0x17_u8] + dump_one_reg_and_int32(instruction)
       when "log"
         array += [0x19_u8] + to_byte_array(instruction[1].as(UInt16))
       when "lstr"
         array += [0x1b_u8] + to_byte_array(instruction[1].as(UInt16)) + dump_string(instruction[2].as(String))
+      when "sst"
+        array += [0x2c_u8] + dump_one_reg_and_int32(instruction) + to_byte_array(instruction[3].as(UInt16))
       when "stop"
         array << 0x2d_u8
 
@@ -85,6 +88,10 @@ module Nolfaris
     return to_byte_array(instruction[1].as(UInt16)) + to_byte_array(instruction[2].as(UInt16)) + to_byte_array(instruction[3].as(UInt16))
   end
 
+  def dump_one_reg_and_float32(instruction)
+    return to_byte_array(instruction[1].as(UInt16)) + to_byte_array(instruction[2].as(Float32))
+  end
+
   def save_file(path : String)
     array = dump_data(DATA)
     File.open(path, "w") do |f|
@@ -98,6 +105,11 @@ module Nolfaris
 
   def to_byte_array(value : UInt16 | Int16)
     [value.to_u8, (value / 0x100).to_u8]
+  end
+
+  def to_byte_array(value : Float32)
+    slice = pointerof(value).as(UInt8*).to_slice(4)
+    return [ slice[0] , slice[1], slice[2] ,slice[3] ]
   end
 
   def dump_string(string : String)
